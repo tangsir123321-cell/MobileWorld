@@ -157,11 +157,14 @@ We thank [Android World](https://github.com/google-research/android_world) and [
 If you find Mobile World useful in your research, please cite our paper:
 
 ```bibtex
-@article{mobileworld2025,
-  title={MobileWorld: Benchmarking Autonomous Mobile Agents in Agent-User Interactive, and MCP-Augmented Environments},
-  author={Quyu Kong and Xu Zhang and Zhenyu Yang and Nolan Gao and Chen Liu and Panrong Tong and Chenglin Cai and Hanzhang Zhou and Jianan Zhang and Liangyu Chen and Zhidan Liu and Steven Hoi and Yue Wang},
-  journal={arXiv preprint arXiv:2512.19432},
-  year={2025}
+@misc{kong2025mobileworldbenchmarkingautonomousmobile,
+      title={MobileWorld: Benchmarking Autonomous Mobile Agents in Agent-User Interactive, and MCP-Augmented Environments}, 
+      author={Quyu Kong and Xu Zhang and Zhenyu Yang and Nolan Gao and Chen Liu and Panrong Tong and Chenglin Cai and Hanzhang Zhou and Jianan Zhang and Liangyu Chen and Zhidan Liu and Steven Hoi and Yue Wang},
+      year={2025},
+      eprint={2512.19432},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2512.19432}, 
 }
 ```
 
