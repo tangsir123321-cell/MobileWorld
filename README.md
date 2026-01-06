@@ -29,20 +29,25 @@
 
 **Mobile World** is a challenging mobile-use benchmark designed to reflect real-world scenarios. It comprises **201 tasks** across **20 applications**, featuring long-horizon, cross-app tasks, and novel task categories including agent–user interaction and MCP-augmented tasks.
 
-
-
-## ✨ Key Features
-
 - 🎯 **201 Diverse Tasks**: Comprehensive benchmark spanning 20 real-world mobile applications
 - 🔄 **Long-Horizon Tasks**: Multi-step reasoning and cross-app workflows
 - 👥 **Agent-User Interaction**: Novel tasks requiring dynamic human-agent collaboration
 - 🔧 **MCP-Augmented Tasks**: Leverage Model Context Protocol for external tool integration
-- 🐳 **Docker-Based**: Easy deployment with containerized Android environments
-- ⚡ **Parallel Evaluation**: Scale evaluation across multiple containers for faster results
-- 📊 **Rich Visualization**: Interactive web-based trajectory viewer and analysis tools
+
+<p align="center">
+  <img src="./assets/compare_to_aw.jpg" alt="Comparison to Android World" width="800">
+</p>
+
+## 📢 Updates
+- **2026-12-29**: We released [MAI-UI](https://tongyi-mai.github.io/MAI-UI/), achieving state-of-the-art performance with a 41.7% success rate in the end-to-end models category on the Mobile World benchmark.
+- **2025-12-23**: Docker image `ghcr.io/Tongyi-MAI/mobile_world:latest` available for public use!
+- **2025-12-23**: Initial release of Mobile World benchmark. Check out our [paper](https://arxiv.org/abs/2512.19432) and [website](https://tongyi-mai.github.io/MobileWorld/)!
+
+
+
+
 
 ## 📋 Table of Contents
-- [Key Features](#-key-features)
 - [Updates](#-updates)
 - [Overview](#-overview)
 - [Installation](#-installation)
@@ -57,10 +62,7 @@
 
 ---
 
-## 📢 Updates
-- **2026-12-29**: We release [MAI-UI](https://tongyi-mai.github.io/MAI-UI/), achieving top-performance (41.7%) on Mobile World benchmark.
-- **2025-12-23**: Docker image `ghcr.io/Tongyi-MAI/mobile_world:latest` available for public use!
-- **2025-12-23**: Initial release of Mobile World benchmark. Check out our [paper](https://arxiv.org/abs/2512.19432) and [website](https://tongyi-mai.github.io/MobileWorld/)!
+
 
 ---
 
@@ -248,9 +250,12 @@ For detailed documentation, see the `docs/` directory:
 
 ## 🎯 Benchmark Statistics
 
-<p align="center">
-  <img src="./assets/mw_statistics.jpg" alt="Mobile World Statistics" width="350">
-</p>
+<table align="center">
+  <tr>
+    <td><img src="./assets/scenario_distribution.jpg" alt="Scenario Distribution" width="420"></td>
+    <td><img src="./assets/mw_statistics.jpg" alt="Mobile World Statistics" width="380"></td>
+  </tr>
+</table>
 
 Mobile World comprises **201 tasks** spanning diverse complexity levels and evaluation methodologies:
 
@@ -291,6 +296,21 @@ Thanks to all the contributors!
 
 ---
 
+
+## 📬 Contact
+
+For questions, issues, or collaboration inquiries:
+
+- **GitHub Issues**: [Open an issue](https://github.com/Tongyi-MAI/MobileWorld/issues)
+- **Email**: Contact the maintainers
+- **WeChat Group**: Scan to join our discussion group
+
+<p align="center">
+  <img src="site/assets/wechat_qr.png" alt="WeChat Group QR Code" width="200">
+</p>
+
+---
+
 ## 🙏 Acknowledgements
 
 We thank [Android World](https://github.com/google-research/android_world) and [Android-Lab](https://github.com/THUDM/Android-Lab) for their open source contributions.
@@ -312,28 +332,6 @@ If you find Mobile World useful in your research, please cite our paper:
       url={https://arxiv.org/abs/2512.19432}, 
 }
 ```
-
----
-
-## 📬 Contact
-
-For questions, issues, or collaboration inquiries:
-
-- **GitHub Issues**: [Open an issue](https://github.com/Tongyi-MAI/MobileWorld/issues)
-- **Email**: Contact the maintainers
-- **WeChat Group**: Scan to join our discussion group
-
-<p align="center">
-  <img src="site/assets/wechat_qr.png" alt="WeChat Group QR Code" width="200">
-</p>
-
----
-
-## 💡 You might also be interested
-
-- **MAI-UI**: Top-performing agent (41.7%) on Mobile World benchmark. [Website](https://tongyi-mai.github.io/MAI-UI/)
-- **Android World**: Open-ended tasks in real Android environments. [GitHub](https://github.com/google-research/android_world)
-- **Android-Lab**: Mobile agent benchmark and platform. [GitHub](https://github.com/THUDM/Android-Lab)
 
 ---
 
