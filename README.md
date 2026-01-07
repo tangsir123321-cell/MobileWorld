@@ -4,6 +4,7 @@
 
 
 <p align="center">
+  <a href="https://tongyi-mai.github.io/MobileWorld/#leaderboard">Leaderboard</a> •
   <a href="https://tongyi-mai.github.io/MobileWorld/">Website</a> •
   <a href="https://arxiv.org/abs/2512.19432">Paper</a> •
   <a href="https://github.com/Tongyi-MAI/MobileWorld/tree/main/docs">Docs</a> •
