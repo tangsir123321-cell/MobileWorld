@@ -13,6 +13,7 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
+from dotenv import dotenv_values
 from mobile_world.core.api.env import (
     DEFAULT_IMAGE,
     DEFAULT_NAME_PREFIX,
@@ -990,6 +991,109 @@ def _exec_container(args: argparse.Namespace) -> None:
     docker_exec_replace(container_name, command, interactive=True)
 
 
+def _check_env_file() -> tuple[bool, str, str | None]:
+    """Check if .env file exists and has valid configuration.
+
+    Returns:
+        Tuple of (passed, message, details)
+    """
+
+    env_path = Path.cwd() / ".env"
+
+    if not env_path.exists():
+        return (
+            False,
+            ".env file not found in current directory",
+            "Create a .env file with required environment variables.\n"
+            "See .env.example for reference.",
+        )
+
+    # Load .env file using dotenv
+    try:
+        env_vars = dotenv_values(env_path)
+    except Exception as e:
+        return (
+            False,
+            f"Failed to read .env file: {e}",
+            None,
+        )
+
+    issues = []
+    warnings = []
+
+    # Define placeholder values to check against
+    placeholders = {
+        "API_KEY": "your_api_key_for_agent_model",
+        "DASHSCOPE_API_KEY": "dashscope_api_key_for_mcp",
+        "MODELSCOPE_API_KEY": "modelscope_api_key_for_mcp",
+        "USER_AGENT_API_KEY": "your_user_agent_llm_api_key",
+        "USER_AGENT_BASE_URL": "your_user_agent_base_url",
+    }
+
+    def is_valid(key: str) -> bool:
+        """Check if env var exists and is not a placeholder."""
+        value = env_vars.get(key)
+        if not value:
+            return False
+        if value == placeholders.get(key):
+            return False
+        return True
+
+    # 1. Check API_KEY (required for all tasks)
+    if not is_valid("API_KEY"):
+        if env_vars.get("API_KEY") == placeholders["API_KEY"]:
+            issues.append("API_KEY is still set to placeholder value")
+        else:
+            issues.append("API_KEY is missing (required for all tasks)")
+
+    # 2. Check MCP keys (optional - for MCP tasks)
+    mcp_keys_missing = []
+    mcp_keys_placeholder = []
+    for key in ["DASHSCOPE_API_KEY", "MODELSCOPE_API_KEY"]:
+        if env_vars.get(key) == placeholders.get(key):
+            mcp_keys_placeholder.append(key)
+        elif not env_vars.get(key):
+            mcp_keys_missing.append(key)
+
+    if mcp_keys_placeholder:
+        warnings.append(f"{', '.join(mcp_keys_placeholder)}: placeholder value (required for MCP tasks)")
+    if mcp_keys_missing:
+        warnings.append(f"{', '.join(mcp_keys_missing)}: not set (required for MCP tasks)")
+
+    # 3. Check USER_AGENT_* keys (optional - for agent-user interaction tasks)
+    user_agent_keys = ["USER_AGENT_API_KEY", "USER_AGENT_BASE_URL", "USER_AGENT_MODEL"]
+    user_agent_missing = []
+    user_agent_placeholder = []
+    for key in user_agent_keys:
+        if env_vars.get(key) == placeholders.get(key):
+            user_agent_placeholder.append(key)
+        elif not env_vars.get(key):
+            user_agent_missing.append(key)
+
+    if user_agent_placeholder:
+        warnings.append(
+            f"{', '.join(user_agent_placeholder)}: placeholder value (required for agent-user interaction tasks)"
+        )
+    if user_agent_missing:
+        warnings.append(
+            f"{', '.join(user_agent_missing)}: not set (required for agent-user interaction tasks)"
+        )
+
+    # Build result
+    if issues:
+        details = "\n".join(f"✗ {issue}" for issue in issues)
+        if warnings:
+            details += "\n\n[yellow]Warnings:[/yellow]\n" + "\n".join(f"⚠ {w}" for w in warnings)
+        return (False, "Required environment variables not configured", details)
+
+    if warnings:
+        details = "[yellow]Optional variables not configured:[/yellow]\n"
+        details += "\n".join(f"⚠ {w}" for w in warnings)
+        return (True, ".env configured (some optional vars missing)", details)
+
+    return (True, ".env file configured correctly", None)
+
+
 def _check_prerequisites(args: argparse.Namespace) -> None:
     """Check prerequisites for running MobileWorld."""
     _ = args  # unused
@@ -1004,6 +1108,18 @@ def _check_prerequisites(args: argparse.Namespace) -> None:
     console.print()
 
     results = check_prerequisites()
+
+    # Add .env file check
+    env_passed, env_message, env_details = _check_env_file()
+    from mobile_world.runtime.utils.models import PrerequisiteCheckResult
+
+    env_check = PrerequisiteCheckResult(
+        name=".env Configuration",
+        passed=env_passed,
+        message=env_message,
+        details=env_details,
+    )
+    results.checks.append(env_check)
 
     table = Table(
         show_header=True,
