@@ -1,7 +1,6 @@
 import json
 import re
 import traceback
-from io import BytesIO
 from typing import Any
 
 from loguru import logger
@@ -10,7 +9,25 @@ from PIL import Image
 from mobile_world.agents.base import MCPAgent
 from mobile_world.agents.utils.helpers import pil_to_base64
 from mobile_world.runtime.utils.helpers import pretty_print_messages
-from mobile_world.runtime.utils.models import JSONAction
+from mobile_world.runtime.utils.models import (
+    JSONAction,
+    FINISHED,
+    CLICK,
+    LONG_PRESS,
+    DOUBLE_TAP,
+    INPUT_TEXT,
+    SCROLL,
+    OPEN_APP,
+    DRAG,
+    WAIT,
+    ANSWER,
+    ASK_USER,
+    NAVIGATE_BACK,
+    NAVIGATE_HOME,
+    KEYBOARD_ENTER,
+    UNKNOWN,
+    MCP,
+)
 from mobile_world.agents.utils.prompts import MAI_MOBILE_SYS_PROMPT_ASK_USER_MCP
 
 
@@ -262,22 +279,19 @@ class MAIUINaivigationAgent(MCPAgent):
         messages = self._build_messages(obs_image, tool_call, ask_user_response)
         pretty_print_messages(messages, max_messages=10)
         logger.debug("*" * 100)
+        prediction = self.openai_chat_completions_create(
+            model=self.model_name,
+            messages=messages,
+            retry_times=3,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            top_p=self.top_p,
+        )
+
+        if prediction is None:
+            raise ValueError("Planner LLM failed")
+        logger.info(f"Raw LLM response:\n{prediction}")
         try:
-            prediction = self.openai_chat_completions_create(
-                model=self.model_name,
-                messages=messages,
-                retry_times=3,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                top_p=self.top_p,
-            )
-
-            if prediction is None:
-                logger.error("LLM returned None response")
-                return "llm client error", JSONAction(action_type="unknown", text="LLM failed")
-
-            logger.info(f"Raw LLM response:\n{prediction}")
-
             parsed_response = parse_action_to_structure_output(prediction)
             thinking = parsed_response["thinking"]
             tool_name = parsed_response.get("tool_name", "mobile_use")
@@ -290,7 +304,7 @@ class MAIUINaivigationAgent(MCPAgent):
         except Exception as e:
             logger.error(f"Error parsing LLM response: {e}")
             traceback.print_exc()
-            return "llm client error", JSONAction(action_type="unknown", text=str(e))
+            return "Parsing error", JSONAction(action_type=UNKNOWN, text=str(e))
         self.history_responses.append({"role": "assistant", "content": prediction})
 
         json_action = self._convert_to_json_action(tool_name, action_json, obs_image)
@@ -312,92 +326,66 @@ class MAIUINaivigationAgent(MCPAgent):
     ) -> JSONAction:
         if tool_name != "mobile_use":
             return JSONAction(
-                action_type="mcp",
+                action_type=MCP,
                 action_name=tool_name,
                 action_json=action_json,
             )
 
-        action_type = action_json.get("action", "unknown")
+        action_type = action_json.get("action", UNKNOWN)
 
-        action_mapping = {
-            "click": "click",
-            "long_press": "long_press",
-            "double_click": "double_tap",
-            "type": "input_text",
-            "swipe": "scroll",
-            "open": "open_app",
-            "drag": "drag",
-            "system_button": None,
-            "wait": "wait",
-            "terminate": "finished",
-            "answer": "answer",
-            "ask_user": "ask_user",
-        }
-
-        mapped_type = action_mapping.get(action_type, action_type)
-
-        if action_type == "system_button":
-            button = action_json.get("button", "").lower()
-            if button == "back":
-                return JSONAction(action_type="navigate_back")
-            elif button == "home":
-                return JSONAction(action_type="navigate_home")
-            elif button == "enter":
-                return JSONAction(action_type="keyboard_enter")
-            else:
-                return JSONAction(action_type="unknown", text=f"Unknown button: {button}")
-
-        if mapped_type in ["click", "long_press", "double_tap"]:
+        if action_type in ("click", "long_press", "double_click"):
             coordinate = action_json.get("coordinate")
             if not coordinate:
-                raise ValueError(f"Missing coordinate for {mapped_type}")
+                raise ValueError(f"Missing coordinate for {action_type}")
             x, y = self._normalize_coord_to_pixel(coordinate, obs_image)
-            return JSONAction(action_type=mapped_type, x=x, y=y)
+            type_map = {"click": CLICK, "long_press": LONG_PRESS, "double_click": DOUBLE_TAP}
+            return JSONAction(action_type=type_map[action_type], x=x, y=y)
 
-        if mapped_type == "scroll":
+        if action_type == "swipe":
             direction = action_json.get("direction", "up")
             coordinate = action_json.get("coordinate")
             if coordinate:
                 x, y = self._normalize_coord_to_pixel(coordinate, obs_image)
-                return JSONAction(action_type="scroll", direction=direction, x=x, y=y)
-            return JSONAction(action_type="scroll", direction=direction)
+                return JSONAction(action_type=SCROLL, direction=direction, x=x, y=y)
+            return JSONAction(action_type=SCROLL, direction=direction)
 
-        if mapped_type == "drag":
+        if action_type == "drag":
             start_coord = action_json.get("start_coordinate", [0, 0])
             end_coord = action_json.get("end_coordinate", [0, 0])
             start_x, start_y = self._normalize_coord_to_pixel(start_coord, obs_image)
             end_x, end_y = self._normalize_coord_to_pixel(end_coord, obs_image)
             return JSONAction(
-                action_type="drag",
-                start_x=start_x,
-                start_y=start_y,
-                end_x=end_x,
-                end_y=end_y,
+                action_type=DRAG,
+                start_x=start_x, start_y=start_y,
+                end_x=end_x, end_y=end_y,
             )
 
-        if mapped_type == "input_text":
-            return JSONAction(action_type="input_text", text=action_json.get("text", ""))
+        if action_type == "system_button":
+            button = action_json.get("button", "").lower()
+            button_map = {"back": NAVIGATE_BACK, "home": NAVIGATE_HOME, "enter": KEYBOARD_ENTER}
+            if button in button_map:
+                return JSONAction(action_type=button_map[button])
+            return JSONAction(action_type=UNKNOWN, text=f"Unknown button: {button}")
 
-        if mapped_type == "open_app":
-            return JSONAction(action_type="open_app", app_name=action_json.get("text", ""))
+        if action_type == "type":
+            return JSONAction(action_type=INPUT_TEXT, text=action_json.get("text", ""))
 
-        if mapped_type == "finished":
-            status = action_json.get("status", "success")
-            return JSONAction(
-                action_type="answer",
-                text="task finished" if status == "success" else "task failed",
-            )
+        if action_type == "open":
+            return JSONAction(action_type=OPEN_APP, app_name=action_json.get("text", ""))
 
-        if mapped_type == "answer":
-            return JSONAction(action_type="answer", text=action_json.get("text", ""))
+        if action_type == "terminate":
+            return JSONAction(action_type=FINISHED, text=action_json.get("status", "success"))
 
-        if mapped_type == "ask_user":
-            return JSONAction(action_type="ask_user", text=action_json.get("text", ""))
+        if action_type == "answer":
+            return JSONAction(action_type=ANSWER, text=action_json.get("text", ""))
 
-        if mapped_type == "wait":
-            return JSONAction(action_type="wait")
+        if action_type == "ask_user":
+            return JSONAction(action_type=ASK_USER, text=action_json.get("text", ""))
 
-        return JSONAction(action_type="unknown", text=f"Unknown action: {action_type}")
+        if action_type == "wait":
+            return JSONAction(action_type=WAIT)
+
+        return JSONAction(action_type=UNKNOWN, text=f"Unknown action: {action_type}")
 
     def reset(self) -> None:
         """Reset the agent for the next task."""
